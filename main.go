@@ -53,11 +53,16 @@ func main() {
 			continue
 		}
 
+		if entry.HasTag("synced") {
+			log.WithField("entry", entry).Debug("entry already synced")
+			continue
+		}
+
 		project := toggl.MustGetProject(*entry.Pid, entry.Wid)
 		jiraIssueKey := jira.JiraKeyFromString(project.Name)
 		jiraIssueId, jiraIssueEstimate, err := jira.GetIssueIdEstimate(jiraIssueKey)
 		if err != nil {
-			log.Debug(err)
+			log.Warn(err)
 			continue
 		}
 
@@ -71,21 +76,9 @@ func main() {
 			TimeSpentSeconds:         int(entry.Duration),
 			RemainingEstimateSeconds: jiraIssueEstimate,
 		}
-		if !worklogExists(worklogs, input) {
-			tempo.MustCreateWorklog(input, entryId)
+		tempo.MustCreateWorklog(input, entryId)
+		if err := toggl.AddTimeEntryTag(entry, "synced"); err != nil {
+			log.WithError(err).WithField("entry", entry).Error("failed to tag entry")
 		}
 	}
-}
-
-func worklogExists(worklogs []tempo.Worklog, input tempo.WorklogCreateInput) bool {
-	for _, worklog := range worklogs {
-		if worklog.Issue.ID == input.IssueID &&
-			worklog.Description == input.Description &&
-			worklog.StartDate == input.StartDate &&
-			worklog.StartTime == input.StartTime &&
-			worklog.SecondsSpent == input.TimeSpentSeconds {
-			return true
-		}
-	}
-	return false
 }

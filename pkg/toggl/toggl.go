@@ -52,3 +52,12 @@ func MustGetProject(id int, wid int) toggl.Project {
 	log.WithField("project", project).Trace("fetched project")
 	return project
 }
+
+func AddTimeEntryTag(entry toggl.TimeEntry, tag string) error {
+	entry.Tags = append(entry.Tags, tag)
+	_, err := Client.UpdateTimeEntry(entry)
+	if err != nil {
+		return err
+	}
+	return nil
+}
