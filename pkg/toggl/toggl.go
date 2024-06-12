@@ -61,3 +61,60 @@ func AddTimeEntryTag(entry toggl.TimeEntry, tag string) error {
 	}
 	return nil
 }
+
+func FilterEntries(entries []toggl.TimeEntry) (map[string][]toggl.TimeEntry, []toggl.TimeEntry) {
+	filtered := map[string][]toggl.TimeEntry{}
+	entriesToTag := []toggl.TimeEntry{}
+	for _, entry := range entries {
+		if entry.Stop == nil {
+			continue
+		}
+
+		if entry.Pid == nil {
+			continue
+		}
+
+		if entry.HasTag("synced") {
+			log.WithField("entry", entry).Debug("entry already synced")
+			continue
+		}
+
+		entriesToTag = append(entriesToTag, entry)
+
+		date := entry.Start.Format("2006-01-02")
+		if _, ok := filtered[date]; !ok {
+			filtered[date] = []toggl.TimeEntry{}
+		}
+
+		if !config.C.TogglGroupSimilarEntries {
+			filtered[date] = append(filtered[date], entry)
+			continue
+		}
+
+		idx, smlrEntry := FindSimilarEntry(filtered[date], entry)
+		if smlrEntry == nil {
+			filtered[date] = append(filtered[date], entry)
+			continue
+		}
+
+		smlrEntry.Duration += entry.Duration
+		filtered[date][idx] = *smlrEntry
+	}
+
+	filteredCount := 0
+	for _, entries := range filtered {
+		filteredCount += len(entries)
+	}
+	log.WithField("toggl entries", filteredCount).Info("filtered entries")
+
+	return filtered, entriesToTag
+}
+
+func FindSimilarEntry(entries []toggl.TimeEntry, entry toggl.TimeEntry) (int, *toggl.TimeEntry) {
+	for i, e := range entries {
+		if *e.Pid == *entry.Pid && e.Description == entry.Description {
+			return i, &e
+		}
+	}
+	return -1, nil
+}

@@ -2,6 +2,7 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"strconv"
 
 	log "github.com/sirupsen/logrus"
@@ -44,39 +45,45 @@ func main() {
 
 	entries := toggl.MustGetCurrentWeekEntries()
 	log.WithField("toggl entries", len(entries)).Info("current week's entries")
-	for _, entry := range entries {
-		if entry.Stop == nil {
-			continue
+	if log.GetLevel() == log.DebugLevel {
+		for _, e := range entries {
+			log.WithField("entry", fmt.Sprintf("%+v", e)).Debug("current week's entry")
 		}
+	}
 
-		if entry.Pid == nil {
-			continue
+	filteredEntries, entriesToTag := toggl.FilterEntries(entries)
+	if log.GetLevel() == log.DebugLevel {
+		for _, e := range entries {
+			log.WithField("entry", fmt.Sprintf("%+v", e)).Debug("current week's filtered entry")
 		}
+	}
 
-		if entry.HasTag("synced") {
-			log.WithField("entry", entry).Debug("entry already synced")
-			continue
-		}
+	for day, entries := range filteredEntries {
+		log.WithField("day", day).Info("adding day's entries")
+		for _, entry := range entries {
+			project := toggl.MustGetProject(*entry.Pid, entry.Wid)
+			jiraIssueKey := jira.JiraKeyFromString(project.Name)
+			jiraIssueId, jiraIssueEstimate, err := jira.GetIssueIdEstimate(jiraIssueKey)
+			if err != nil {
+				log.Warn(err)
+				continue
+			}
 
-		project := toggl.MustGetProject(*entry.Pid, entry.Wid)
-		jiraIssueKey := jira.JiraKeyFromString(project.Name)
-		jiraIssueId, jiraIssueEstimate, err := jira.GetIssueIdEstimate(jiraIssueKey)
-		if err != nil {
-			log.Warn(err)
-			continue
+			entryId := strconv.Itoa(entry.ID)
+			input := tempo.WorklogCreateInput{
+				IssueID:                  jiraIssueId,
+				AuthorAccountID:          jiraAccountId,
+				Description:              entry.Description,
+				StartDate:                entry.Start.Format("2006-01-02"),
+				StartTime:                entry.Start.Format("15:04:05"),
+				TimeSpentSeconds:         int(entry.Duration),
+				RemainingEstimateSeconds: jiraIssueEstimate,
+			}
+			tempo.MustCreateWorklog(input, entryId)
 		}
+	}
 
-		entryId := strconv.Itoa(entry.ID)
-		input := tempo.WorklogCreateInput{
-			IssueID:                  jiraIssueId,
-			AuthorAccountID:          jiraAccountId,
-			Description:              entry.Description,
-			StartDate:                entry.Start.Format("2006-01-02"),
-			StartTime:                entry.Start.Format("15:04:05"),
-			TimeSpentSeconds:         int(entry.Duration),
-			RemainingEstimateSeconds: jiraIssueEstimate,
-		}
-		tempo.MustCreateWorklog(input, entryId)
+	for _, entry := range entriesToTag {
 		if err := toggl.AddTimeEntryTag(entry, "synced"); err != nil {
 			log.WithError(err).WithField("entry", entry).Error("failed to tag entry")
 		}

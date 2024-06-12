@@ -3,6 +3,7 @@ package tempo
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/url"
 	goTime "time"
@@ -139,6 +140,8 @@ func MustCreateWorklog(input WorklogCreateInput, workAttrVal string) {
 			{Key: config.C.TempoWorkAttributeKey, Value: workAttrVal},
 		}
 	}
+
+	log.WithField("input", fmt.Sprintf("%+v", input)).Info("creating worklog")
 	err := C.CreateWorklog(input)
 	if err != nil {
 		panic(err)

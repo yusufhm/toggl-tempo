@@ -19,6 +19,10 @@ type Config struct {
 
 	// TogglToken is the token to authenticate with Toggl
 	TogglToken string `yaml:"toggl-token"`
+	// TogglGroupSimilarEntries determines whether similar entries should be
+	// grouped. This will create a single worklog in Tempo for all similar
+	// entries in Toggl in a single day.
+	TogglGroupSimilarEntries bool `yaml:"toggl-group-similar-entries"`
 }
 
 var C Config
@@ -26,11 +30,12 @@ var C Config
 // InitEnvConfig initializes the configuration from environment variables.
 func InitEnvConfig() {
 	C = Config{
-		JiraURL:    os.Getenv("JIRA_URL"),
-		JiraUser:   os.Getenv("JIRA_USER"),
-		JiraToken:  os.Getenv("JIRA_TOKEN"),
-		TempoURL:   os.Getenv("TEMPO_URL"),
-		TempoToken: os.Getenv("TEMPO_TOKEN"),
-		TogglToken: os.Getenv("TOGGL_TOKEN"),
+		JiraURL:                  os.Getenv("JIRA_URL"),
+		JiraUser:                 os.Getenv("JIRA_USER"),
+		JiraToken:                os.Getenv("JIRA_TOKEN"),
+		TempoURL:                 os.Getenv("TEMPO_URL"),
+		TempoToken:               os.Getenv("TEMPO_TOKEN"),
+		TogglToken:               os.Getenv("TOGGL_TOKEN"),
+		TogglGroupSimilarEntries: true,
 	}
 }
