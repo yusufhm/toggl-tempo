@@ -67,11 +67,18 @@ func (c *Client) GetWorklogs(params url.Values) ([]Worklog, error) {
 	}
 	req.URL.RawQuery = params.Encode()
 
-	bodyBytes, _, err := c.Do(req)
+	bodyBytes, resp, err := c.Do(req)
 	if err != nil {
 		return nil, err
 	}
-	log.WithField("body", string(bodyBytes)).Trace("get worklogs response")
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("failed to get worklogs: status code %d", resp.StatusCode)
+	}
+
+	log.WithField("body", string(bodyBytes)).
+		WithField("status", resp.Status).
+		Trace("get worklogs response")
 
 	var result WorklogsResult
 	if err := json.Unmarshal(bodyBytes, &result); err != nil {
