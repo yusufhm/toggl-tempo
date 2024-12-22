@@ -43,6 +43,26 @@ func MustGetCurrentWeekEntries() []toggl.TimeEntry {
 	return entries
 }
 
+func GetLastWeekEntries() ([]toggl.TimeEntry, error) {
+	currentWeekStart := time.WeekStartDate(goTime.Now())
+	lastWeekStart := currentWeekStart.AddDate(0, 0, -7)
+	entries, err := Client.GetTimeEntries(lastWeekStart, goTime.Now())
+	if err != nil {
+		return nil, err
+	}
+	log.WithField("entries", entries).Trace("fetched entries")
+	return entries, nil
+}
+
+func MustGetLastWeekEntries() []toggl.TimeEntry {
+	GetClient()
+	entries, err := GetLastWeekEntries()
+	if err != nil {
+		panic(err)
+	}
+	return entries
+}
+
 func MustGetProject(id int, wid int) toggl.Project {
 	GetClient()
 	project, err := Client.GetProject(id, wid)

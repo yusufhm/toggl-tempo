@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strconv"
 
+	origToggl "github.com/jason0x43/go-toggl"
 	log "github.com/sirupsen/logrus"
 
 	"toggl-tempo/pkg/config"
@@ -14,11 +15,13 @@ import (
 )
 
 var finalLogLevel = log.WarnLevel
+var lastWeek bool
 
 func init() {
 	logLevel := flag.String("log-level", "warn", "log level")
 	verbose := flag.Bool("verbose", false, "verbose mode - alias for '-log-level info'")
 	debug := flag.Bool("debug", false, "debug mode - alias for '-log-level debug'")
+	flag.BoolVar(&lastWeek, "last-week", false, "sync last week's entries")
 	flag.Parse()
 
 	if *verbose {
@@ -43,18 +46,24 @@ func main() {
 	worklogs := tempo.MustGetCurrentWeekEntries(nil)
 	log.WithField("tempo worklogs", len(worklogs)).Info("current week's entries")
 
-	entries := toggl.MustGetCurrentWeekEntries()
-	log.WithField("toggl entries", len(entries)).Info("current week's entries")
+	var entries []origToggl.TimeEntry
+	if lastWeek {
+		entries = toggl.MustGetLastWeekEntries()
+		log.WithField("toggl entries", len(entries)).Info("last week's entries")
+	} else {
+		entries = toggl.MustGetCurrentWeekEntries()
+		log.WithField("toggl entries", len(entries)).Info("current week's entries")
+	}
 	if log.GetLevel() == log.DebugLevel {
 		for _, e := range entries {
-			log.WithField("entry", fmt.Sprintf("%+v", e)).Debug("current week's entry")
+			log.WithField("entry", fmt.Sprintf("%+v", e)).Debug()
 		}
 	}
 
 	filteredEntries, entriesToTag := toggl.FilterEntries(entries)
 	if log.GetLevel() == log.DebugLevel {
 		for _, e := range entries {
-			log.WithField("entry", fmt.Sprintf("%+v", e)).Debug("current week's filtered entry")
+			log.WithField("entry", fmt.Sprintf("%+v", e)).Debug("filtered entry")
 		}
 	}
 
