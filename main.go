@@ -11,6 +11,7 @@ import (
 	"toggl-tempo/pkg/config"
 	"toggl-tempo/pkg/jira"
 	"toggl-tempo/pkg/tempo"
+	"toggl-tempo/pkg/time"
 	"toggl-tempo/pkg/toggl"
 )
 
@@ -43,8 +44,6 @@ func init() {
 
 func main() {
 	jiraAccountId := jira.MustGetAccountId()
-	worklogs := tempo.MustGetCurrentWeekEntries(nil)
-	log.WithField("tempo worklogs", len(worklogs)).Info("current week's entries")
 
 	var entries []origToggl.TimeEntry
 	if lastWeek {
@@ -79,12 +78,13 @@ func main() {
 			}
 
 			entryId := strconv.Itoa(entry.ID)
+			start := entry.Start.In(time.Location())
 			input := tempo.WorklogCreateInput{
 				IssueID:                  jiraIssueId,
 				AuthorAccountID:          jiraAccountId,
 				Description:              entry.Description,
-				StartDate:                entry.Start.Format("2006-01-02"),
-				StartTime:                entry.Start.Format("15:04:05"),
+				StartDate:                start.Format("2006-01-02"),
+				StartTime:                start.Format("15:04:05"),
 				TimeSpentSeconds:         int(entry.Duration),
 				RemainingEstimateSeconds: jiraIssueEstimate,
 			}
@@ -93,6 +93,7 @@ func main() {
 	}
 
 	for _, entry := range entriesToTag {
+		log.WithField("entry", entry).Trace("tagging entry as synced")
 		if err := toggl.AddTimeEntryTag(entry, "synced"); err != nil {
 			log.WithError(err).WithField("entry", entry).Error("failed to tag entry")
 		}

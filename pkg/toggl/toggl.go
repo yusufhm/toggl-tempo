@@ -21,6 +21,7 @@ func GetClient() *toggl.Session {
 	if log.GetLevel() < log.DebugLevel {
 		toggl.DisableLog()
 	}
+
 	Client = &c
 	return Client
 }
@@ -95,13 +96,16 @@ func FilterEntries(entries []toggl.TimeEntry) (map[string][]toggl.TimeEntry, []t
 		}
 
 		if entry.HasTag("synced") {
-			log.WithField("entry", entry).Debug("entry already synced")
+			log.WithField("entry", entry).Trace("entry already synced")
 			continue
 		}
-
 		entriesToTag = append(entriesToTag, entry)
 
-		date := entry.Start.Format("2006-01-02")
+		startDate := entry.Start.In(time.Location())
+		date := startDate.Format("2006-01-02")
+		log.WithFields(log.Fields{
+			"entry":      entry,
+			"local-date": startDate}).Debug("entry to sync")
 		if _, ok := filtered[date]; !ok {
 			filtered[date] = []toggl.TimeEntry{}
 		}
@@ -118,6 +122,11 @@ func FilterEntries(entries []toggl.TimeEntry) (map[string][]toggl.TimeEntry, []t
 		}
 
 		smlrEntry.Duration += entry.Duration
+
+		// Use the earliest start time.
+		if entry.StartTime().Before(smlrEntry.StartTime()) {
+			smlrEntry.Start = entry.Start
+		}
 		filtered[date][idx] = *smlrEntry
 	}
 
