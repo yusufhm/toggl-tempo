@@ -1,6 +1,7 @@
 package toggl
 
 import (
+	"fmt"
 	goTime "time"
 
 	"github.com/jason0x43/go-toggl"
@@ -11,6 +12,7 @@ import (
 )
 
 var Client *toggl.Session
+var projectsCache = map[string]toggl.Project{}
 
 func GetClient() *toggl.Session {
 	if Client != nil {
@@ -65,12 +67,19 @@ func MustGetLastWeekEntries() []toggl.TimeEntry {
 }
 
 func MustGetProject(id int, wid int) toggl.Project {
+	cacheId := fmt.Sprintf("%d-%d", id, wid)
+	if p, ok := projectsCache[cacheId]; ok {
+		return p
+	}
+
 	GetClient()
 	project, err := Client.GetProject(id, wid)
 	if err != nil {
 		panic(err)
 	}
 	log.WithField("project", project).Trace("fetched project")
+
+	projectsCache[cacheId] = project
 	return project
 }
 
