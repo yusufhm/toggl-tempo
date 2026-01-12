@@ -92,10 +92,10 @@ func main() {
 		}
 	}
 
-	for _, entry := range entriesToTag {
-		log.WithField("entry", entry).Trace("tagging entry as synced")
-		if err := toggl.AddTimeEntryTag(entry, "synced"); err != nil {
-			log.WithError(err).WithField("entry", entry).Error("failed to tag entry")
+	if len(entriesToTag) > 0 {
+		log.WithField("count", len(entriesToTag)).Info("tagging entries as synced")
+		if err := toggl.BulkAddTimeEntryTag(entriesToTag, "synced"); err != nil {
+			log.WithError(err).WithField("count", len(entriesToTag)).Error("failed to bulk tag entries")
 		}
 	}
 }

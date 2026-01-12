@@ -1,7 +1,13 @@
 package toggl
 
 import (
+	"bytes"
+	"encoding/base64"
+	"encoding/json"
 	"fmt"
+	"net/http"
+	"strconv"
+	"strings"
 	goTime "time"
 
 	"github.com/jason0x43/go-toggl"
@@ -89,6 +95,106 @@ func AddTimeEntryTag(entry toggl.TimeEntry, tag string) error {
 	if err != nil {
 		return err
 	}
+	return nil
+}
+
+// BulkAddTimeEntryTag adds a tag to multiple time entries using the Toggl API v9 bulk editing endpoint.
+// Entries are grouped by workspace and batched in groups of up to 100 IDs per request.
+func BulkAddTimeEntryTag(entries []toggl.TimeEntry, tag string) error {
+	if len(entries) == 0 {
+		return nil
+	}
+
+	// Group entries by workspace_id
+	entriesByWorkspace := make(map[int][]toggl.TimeEntry)
+	for _, entry := range entries {
+		entriesByWorkspace[entry.Wid] = append(entriesByWorkspace[entry.Wid], entry)
+	}
+
+	// Process each workspace
+	for workspaceID, workspaceEntries := range entriesByWorkspace {
+		// Batch entries in groups of 100 (API limit)
+		const batchSize = 100
+		for i := 0; i < len(workspaceEntries); i += batchSize {
+			end := i + batchSize
+			if end > len(workspaceEntries) {
+				end = len(workspaceEntries)
+			}
+			batch := workspaceEntries[i:end]
+
+			// Collect entry IDs for this batch
+			entryIDs := make([]string, len(batch))
+			for j, entry := range batch {
+				entryIDs[j] = strconv.Itoa(entry.ID)
+			}
+
+			// Make bulk update request
+			if err := bulkUpdateTimeEntries(workspaceID, entryIDs, tag); err != nil {
+				log.WithError(err).WithFields(log.Fields{
+					"workspace_id": workspaceID,
+					"entry_ids":    entryIDs,
+					"tag":          tag,
+				}).Error("failed to bulk update time entries")
+				// Continue processing other batches even if one fails
+			} else {
+				log.WithFields(log.Fields{
+					"workspace_id": workspaceID,
+					"count":        len(batch),
+					"tag":          tag,
+				}).Debug("successfully bulk updated time entries")
+			}
+		}
+	}
+
+	return nil
+}
+
+// bulkUpdateTimeEntries makes a PATCH request to the Toggl API v9 bulk editing endpoint
+func bulkUpdateTimeEntries(workspaceID int, entryIDs []string, tag string) error {
+	// Build URL: /api/v9/workspaces/{workspace_id}/time_entries/{comma_separated_ids}
+	entryIDsStr := strings.Join(entryIDs, ",")
+	url := fmt.Sprintf("https://api.track.toggl.com/api/v9/workspaces/%d/time_entries/%s", workspaceID, entryIDsStr)
+
+	// Create JSON Patch request body
+	patchOps := []map[string]interface{}{
+		{
+			"op":    "add",
+			"path":  "/tags",
+			"value": []string{tag},
+		},
+	}
+
+	requestBody, err := json.Marshal(patchOps)
+	if err != nil {
+		return fmt.Errorf("failed to marshal request body: %w", err)
+	}
+
+	// Create HTTP request
+	req, err := http.NewRequest(http.MethodPatch, url, bytes.NewBuffer(requestBody))
+	if err != nil {
+		return fmt.Errorf("failed to create request: %w", err)
+	}
+
+	// Set headers
+	req.Header.Set("Content-Type", "application/json")
+
+	// Set Basic Auth: Toggl API uses token:api_token format
+	auth := base64.StdEncoding.EncodeToString([]byte(config.C.TogglToken + ":api_token"))
+	req.Header.Set("Authorization", "Basic "+auth)
+
+	// Make request
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		return fmt.Errorf("failed to execute request: %w", err)
+	}
+	defer resp.Body.Close()
+
+	// Check response status
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		return fmt.Errorf("unexpected status code: %d", resp.StatusCode)
+	}
+
 	return nil
 }
 
