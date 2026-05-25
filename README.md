@@ -1,10 +1,55 @@
 # toggl-tempo
 
-## Clone the repo
+## Install
+
+### Download a pre-built release
+
+Pre-built binaries for macOS, Linux, and Windows are published on the
+[GitHub Releases page](https://github.com/yusufhm/toggl-tempo/releases/latest).
+
+Pick the binary that matches your OS and architecture:
+
+| OS      | Architecture       | Binary                            |
+| ------- | ------------------ | --------------------------------- |
+| macOS   | Intel              | `toggl-tempo-darwin-amd64`        |
+| macOS   | Apple Silicon (M1+)| `toggl-tempo-darwin-arm64`        |
+| Linux   | x86_64             | `toggl-tempo-linux-amd64`         |
+| Linux   | ARM64              | `toggl-tempo-linux-arm64`         |
+| Windows | x86_64             | `toggl-tempo-windows-amd64.exe`   |
+
+#### macOS / Linux
+
+```sh
+# Replace <version> with the release tag (e.g. v1.0.0) and <binary>
+# with the file name from the table above.
+curl -L -o toggl-tempo \
+  https://github.com/yusufhm/toggl-tempo/releases/download/<version>/<binary>
+chmod +x toggl-tempo
+sudo mv toggl-tempo /usr/local/bin/
+```
+
+> [!NOTE]
+> On macOS you may need to clear the quarantine attribute the first time
+> you run a downloaded binary:
+> `xattr -d com.apple.quarantine /usr/local/bin/toggl-tempo`
+
+#### Windows (PowerShell)
+
+```powershell
+# Replace <version> with the release tag (e.g. v1.0.0).
+Invoke-WebRequest `
+  -Uri https://github.com/yusufhm/toggl-tempo/releases/download/<version>/toggl-tempo-windows-amd64.exe `
+  -OutFile toggl-tempo.exe
+```
+
+Then move `toggl-tempo.exe` somewhere on your `PATH`.
+
+### Build from source
 
 ```sh
 git clone git@github.com:yusufhm/toggl-tempo.git
 cd toggl-tempo
+go build -o toggl-tempo .
 ```
 
 ## Configure
@@ -60,6 +105,9 @@ export TOGGL_GROUP_SIMILAR_ENTRIES=true
 ```
 
 ## Run the sync
+
+If you installed a pre-built release, replace `go run .` with `toggl-tempo`
+in the commands below.
 
 ```sh
 go run .
