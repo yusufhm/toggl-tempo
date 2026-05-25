@@ -162,10 +162,7 @@ func (c *Client) CreateWorklog(input WorklogCreateInput) error {
 	if err != nil {
 		return err
 	}
-	log.WithFields(log.Fields{
-		"header": req.Header,
-		"body":   string(body),
-	}).Trace("create worklogs request")
+	log.WithField("body", string(body)).Trace("create worklogs request")
 
 	bodyBytes, resp, err := c.Do(req)
 	if err != nil {
