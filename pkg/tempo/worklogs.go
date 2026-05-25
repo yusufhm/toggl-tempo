@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"strings"
 	goTime "time"
 
 	log "github.com/sirupsen/logrus"
@@ -41,6 +42,14 @@ type Worklog struct {
 type WorklogAttribute struct {
 	Key   string `json:"key"`
 	Value string `json:"value"`
+}
+
+type tempoError struct {
+	Message string `json:"message"`
+}
+
+type tempoErrorResponse struct {
+	Errors []tempoError `json:"errors"`
 }
 
 type WorklogCreateInput struct {
@@ -166,6 +175,18 @@ func (c *Client) CreateWorklog(input WorklogCreateInput) error {
 		"status": resp.Status,
 		"body":   string(bodyBytes),
 	}).Debug("create worklogs response")
+
+	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusCreated {
+		var errResp tempoErrorResponse
+		if jsonErr := json.Unmarshal(bodyBytes, &errResp); jsonErr == nil && len(errResp.Errors) > 0 {
+			msgs := make([]string, len(errResp.Errors))
+			for i, e := range errResp.Errors {
+				msgs[i] = e.Message
+			}
+			return fmt.Errorf("create worklog failed (%s): %s", resp.Status, strings.Join(msgs, "; "))
+		}
+		return fmt.Errorf("create worklog failed (%s)", resp.Status)
+	}
 
 	return nil
 }
