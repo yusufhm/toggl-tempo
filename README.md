@@ -17,13 +17,22 @@ Pick the binary that matches your OS and architecture:
 | Linux   | ARM64              | `toggl-tempo-linux-arm64`         |
 | Windows | x86_64             | `toggl-tempo-windows-amd64.exe`   |
 
-#### macOS / Linux
+#### macOS (Apple Silicon)
 
 ```sh
-# Replace <version> with the release tag (e.g. v1.0.0) and <binary>
-# with the file name from the table above.
+# To pin a specific version, replace "latest/download" with "download/<version>" (e.g. download/v1.0.0).
 curl -L -o toggl-tempo \
-  https://github.com/yusufhm/toggl-tempo/releases/download/<version>/<binary>
+  https://github.com/yusufhm/toggl-tempo/releases/latest/download/toggl-tempo-darwin-arm64
+chmod +x toggl-tempo
+sudo mv toggl-tempo /usr/local/bin/
+```
+
+#### Linux (x86_64)
+
+```sh
+# To pin a specific version, replace "latest/download" with "download/<version>" (e.g. download/v1.0.0).
+curl -L -o toggl-tempo \
+  https://github.com/yusufhm/toggl-tempo/releases/latest/download/toggl-tempo-linux-amd64
 chmod +x toggl-tempo
 sudo mv toggl-tempo /usr/local/bin/
 ```
@@ -36,9 +45,9 @@ sudo mv toggl-tempo /usr/local/bin/
 #### Windows (PowerShell)
 
 ```powershell
-# Replace <version> with the release tag (e.g. v1.0.0).
+# To pin a specific version, replace "latest/download" with "download/<version>" (e.g. download/v1.0.0).
 Invoke-WebRequest `
-  -Uri https://github.com/yusufhm/toggl-tempo/releases/download/<version>/toggl-tempo-windows-amd64.exe `
+  -Uri https://github.com/yusufhm/toggl-tempo/releases/latest/download/toggl-tempo-windows-amd64.exe `
   -OutFile toggl-tempo.exe
 ```
 
