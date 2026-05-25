@@ -39,18 +39,20 @@ var C Config
 const appDirName = "toggl-tempo"
 const configFileName = "config.yaml"
 
-// configFilePath returns the OS-appropriate path to the config file.
+// configFilePath returns the path to the config file.
 //
-// On macOS this is ~/Library/Application Support/toggl-tempo/config.yaml, on
-// Linux $XDG_CONFIG_HOME/toggl-tempo/config.yaml (defaults to
-// ~/.config/toggl-tempo/config.yaml), and on Windows
-// %AppData%\toggl-tempo\config.yaml.
+// It respects $XDG_CONFIG_HOME when set. Otherwise it falls back to
+// ~/.config/toggl-tempo/config.yaml, which is the convention for CLI tools on
+// both Linux and macOS.
 func configFilePath() (string, error) {
-	dir, err := os.UserConfigDir()
-	if err != nil {
-		return "", fmt.Errorf("locate user config dir: %w", err)
+	if xdg := os.Getenv("XDG_CONFIG_HOME"); xdg != "" {
+		return filepath.Join(xdg, appDirName, configFileName), nil
 	}
-	return filepath.Join(dir, appDirName, configFileName), nil
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return "", fmt.Errorf("locate home dir: %w", err)
+	}
+	return filepath.Join(home, ".config", appDirName, configFileName), nil
 }
 
 // loadFile reads the YAML config file at path and unmarshals it into C. It
