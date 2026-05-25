@@ -36,3 +36,18 @@ go run . --debug
 # Even more (trace)
 go run . --log-level trace
 ```
+
+## List Tempo worklogs
+
+Inspect worklogs that already exist in Tempo without syncing anything new.
+
+```sh
+# Current week (Monday to today)
+go run . --list-worklogs
+
+# Last week (previous Monday to Sunday)
+go run . --list-worklogs --last-week
+
+# Explicit range (overrides --last-week)
+go run . --list-worklogs --from 2026-05-18 --to 2026-05-24
+```

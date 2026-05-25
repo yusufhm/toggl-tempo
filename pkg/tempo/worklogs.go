@@ -54,10 +54,9 @@ type WorklogCreateInput struct {
 	Attributes               []WorklogAttribute `json:"attributes"`
 }
 
-// GetWorklogs retrieves all worklogs from Tempo.
+// GetWorklogs retrieves all worklogs from Tempo, following pagination via the
+// metadata.next link until exhausted.
 func (c *Client) GetWorklogs(params url.Values) ([]Worklog, error) {
-	req, _ := http.NewRequest("GET", c.Url+"/worklogs", nil)
-
 	if params == nil {
 		params = url.Values{}
 	}
@@ -65,28 +64,60 @@ func (c *Client) GetWorklogs(params url.Values) ([]Worklog, error) {
 	if params.Get("orderBy") == "" {
 		params.Add("orderBy", "UPDATED")
 	}
-	req.URL.RawQuery = params.Encode()
 
-	bodyBytes, resp, err := c.Do(req)
+	nextURL := c.Url + "/worklogs?" + params.Encode()
+	var allResults []Worklog
+
+	for nextURL != "" {
+		req, err := http.NewRequest("GET", nextURL, nil)
+		if err != nil {
+			return nil, err
+		}
+
+		bodyBytes, resp, err := c.Do(req)
+		if err != nil {
+			return nil, err
+		}
+
+		if resp.StatusCode != http.StatusOK {
+			return nil, fmt.Errorf("failed to get worklogs: status code %d", resp.StatusCode)
+		}
+
+		log.WithField("body", string(bodyBytes)).
+			WithField("status", resp.Status).
+			Trace("get worklogs response")
+
+		var result WorklogsResult
+		if err := json.Unmarshal(bodyBytes, &result); err != nil {
+			return nil, err
+		}
+		log.WithField("result", result).Trace("get worklogs result")
+
+		allResults = append(allResults, result.Results...)
+		nextURL = result.Metadata.Next
+	}
+
+	return allResults, nil
+}
+
+// MustGetWorklogs queries Tempo using the provided params and panics on error.
+// Caller is responsible for setting from/to (and any other filters) on params.
+func MustGetWorklogs(params url.Values) []Worklog {
+	GetClient()
+
+	if params == nil {
+		params = url.Values{}
+	}
+
+	log.WithFields(log.Fields{
+		"from": params.Get("from"),
+		"to":   params.Get("to"),
+	}).Debug("get worklogs")
+	worklogs, err := C.GetWorklogs(params)
 	if err != nil {
-		return nil, err
+		panic(err)
 	}
-
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("failed to get worklogs: status code %d", resp.StatusCode)
-	}
-
-	log.WithField("body", string(bodyBytes)).
-		WithField("status", resp.Status).
-		Trace("get worklogs response")
-
-	var result WorklogsResult
-	if err := json.Unmarshal(bodyBytes, &result); err != nil {
-		return nil, err
-	}
-	log.WithField("result", result).Trace("get worklogs result")
-
-	return result.Results, nil
+	return worklogs
 }
 
 func MustGetCurrentWeekEntries(params url.Values) []Worklog {
