@@ -7,7 +7,42 @@ git clone git@github.com:yusufhm/toggl-tempo.git
 cd toggl-tempo
 ```
 
-## Setup environment variables
+## Configure
+
+Configuration is loaded from a YAML file in your OS user config directory,
+with environment variables taking precedence over file values when set.
+
+### Config file
+
+Create `config.yaml` in the appropriate directory for your OS:
+
+| OS      | Path                                                       |
+| ------- | ---------------------------------------------------------- |
+| macOS   | `~/Library/Application Support/toggl-tempo/config.yaml`    |
+| Linux   | `~/.config/toggl-tempo/config.yaml` (or `$XDG_CONFIG_HOME`)|
+| Windows | `%AppData%\toggl-tempo\config.yaml`                        |
+
+Example `config.yaml`:
+
+```yaml
+jira-url: https://example.atlassian.net
+jira-user: you@example.com
+jira-token: ""
+
+tempo-url: https://api.tempo.io/4
+tempo-token: ""
+# Optional: stores the Toggl entry ID against this Tempo work attribute
+tempo-work-attribute-key: ""
+
+toggl-token: ""
+# When true, similar entries on the same day are merged into a single
+# Tempo worklog.
+toggl-group-similar-entries: true
+```
+
+### Environment variables
+
+Any of these env vars override the corresponding config file value when set:
 
 > [!TIP]
 > [direnv](https://direnv.net/docs/installation.html) is a very handy tool for
@@ -19,7 +54,9 @@ export JIRA_USER=
 export JIRA_TOKEN=""
 export TEMPO_URL=https://api.tempo.io/4
 export TEMPO_TOKEN=""
+export TEMPO_WORK_ATTRIBUTE_KEY=""
 export TOGGL_TOKEN=""
+export TOGGL_GROUP_SIMILAR_ENTRIES=true
 ```
 
 ## Run the sync

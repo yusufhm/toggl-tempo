@@ -52,7 +52,9 @@ func init() {
 	finalLogLevel = level
 
 	log.SetLevel(finalLogLevel)
-	config.InitEnvConfig()
+	if err := config.Init(); err != nil {
+		log.WithError(err).Fatal("failed to initialize config")
+	}
 }
 
 func main() {
