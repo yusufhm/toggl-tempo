@@ -20,6 +20,8 @@ import (
 	"toggl-tempo/pkg/toggl"
 )
 
+var version = "dev"
+
 var finalLogLevel = log.WarnLevel
 var lastWeek bool
 var listWorklogs bool
@@ -31,12 +33,18 @@ func init() {
 	logLevel := flag.String("log-level", "warn", "log level")
 	verbose := flag.Bool("verbose", false, "verbose mode - alias for '-log-level info'")
 	debug := flag.Bool("debug", false, "debug mode - alias for '-log-level debug'")
+	versionFlag := flag.Bool("version", false, "print version and exit")
 	flag.BoolVar(&lastWeek, "last-week", false, "sync last week's entries (or list last week with --list-worklogs)")
 	flag.BoolVar(&listWorklogs, "list-worklogs", false, "list Tempo worklogs instead of syncing from Toggl")
 	flag.StringVar(&fromDate, "from", "", "start date (YYYY-MM-DD) for --list-worklogs; overrides --last-week")
 	flag.StringVar(&toDate, "to", "", "end date (YYYY-MM-DD) for --list-worklogs; overrides --last-week")
 	flag.BoolVar(&force, "force", false, "re-sync entries even if already tagged as synced")
 	flag.Parse()
+
+	if *versionFlag {
+		fmt.Println(version)
+		os.Exit(0)
+	}
 
 	if *verbose {
 		*logLevel = "info"
