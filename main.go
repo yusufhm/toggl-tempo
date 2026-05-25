@@ -25,6 +25,7 @@ var lastWeek bool
 var listWorklogs bool
 var fromDate string
 var toDate string
+var force bool
 
 func init() {
 	logLevel := flag.String("log-level", "warn", "log level")
@@ -34,6 +35,7 @@ func init() {
 	flag.BoolVar(&listWorklogs, "list-worklogs", false, "list Tempo worklogs instead of syncing from Toggl")
 	flag.StringVar(&fromDate, "from", "", "start date (YYYY-MM-DD) for --list-worklogs; overrides --last-week")
 	flag.StringVar(&toDate, "to", "", "end date (YYYY-MM-DD) for --list-worklogs; overrides --last-week")
+	flag.BoolVar(&force, "force", false, "re-sync entries even if already tagged as synced")
 	flag.Parse()
 
 	if *verbose {
@@ -75,7 +77,7 @@ func main() {
 		}
 	}
 
-	filteredEntries, entriesToTag := toggl.FilterEntries(entries)
+	filteredEntries, entriesToTag := toggl.FilterEntries(entries, force)
 	if log.GetLevel() == log.DebugLevel {
 		for _, e := range entries {
 			log.WithField("entry", fmt.Sprintf("%+v", e)).Debug("filtered entry")

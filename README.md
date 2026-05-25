@@ -37,6 +37,24 @@ go run . --debug
 go run . --log-level trace
 ```
 
+### Re-sync already-synced entries
+
+By default, Toggl entries tagged `synced` are skipped. Pass `--force` to
+re-sync them anyway (useful if a previous sync went to the wrong issue or
+the Tempo worklog was deleted).
+
+```sh
+# Re-sync the current week, including entries already tagged `synced`
+go run . --force
+
+# Re-sync last week
+go run . --force --last-week
+```
+
+Note: `--force` does not delete or update existing Tempo worklogs; it just
+creates worklogs for entries that would otherwise have been skipped. Clean
+up any duplicates in Tempo manually if needed.
+
 ## List Tempo worklogs
 
 Inspect worklogs that already exist in Tempo without syncing anything new.

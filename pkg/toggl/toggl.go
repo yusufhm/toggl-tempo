@@ -198,7 +198,7 @@ func bulkUpdateTimeEntries(workspaceID int, entryIDs []string, tag string) error
 	return nil
 }
 
-func FilterEntries(entries []toggl.TimeEntry) (map[string][]toggl.TimeEntry, []toggl.TimeEntry) {
+func FilterEntries(entries []toggl.TimeEntry, force bool) (map[string][]toggl.TimeEntry, []toggl.TimeEntry) {
 	filtered := map[string][]toggl.TimeEntry{}
 	entriesToTag := []toggl.TimeEntry{}
 	for _, entry := range entries {
@@ -210,7 +210,7 @@ func FilterEntries(entries []toggl.TimeEntry) (map[string][]toggl.TimeEntry, []t
 			continue
 		}
 
-		if entry.HasTag("synced") {
+		if !force && entry.HasTag("synced") {
 			log.WithField("entry", entry).Trace("entry already synced")
 			continue
 		}
