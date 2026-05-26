@@ -69,13 +69,29 @@ func loadFile(path string) error {
 	return nil
 }
 
+func createEmptyConfigFile(path string) error {
+	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+		return fmt.Errorf("create config dir: %w", err)
+	}
+	f, err := os.OpenFile(path, os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0o600)
+	if err != nil {
+		return fmt.Errorf("create config file: %w", err)
+	}
+	return f.Close()
+}
+
 // Init initializes the configuration from a YAML file (if present) and then
 // overlays non-empty environment variables, which always take precedence.
 func Init() error {
 	path, err := configFilePath()
 	if err == nil {
-		if loadErr := loadFile(path); loadErr != nil && !errors.Is(loadErr, fs.ErrNotExist) {
-			return loadErr
+		if loadErr := loadFile(path); loadErr != nil {
+			if !errors.Is(loadErr, fs.ErrNotExist) {
+				return loadErr
+			}
+			if err := createEmptyConfigFile(path); err != nil {
+				return err
+			}
 		}
 	}
 
